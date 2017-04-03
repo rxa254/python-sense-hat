@@ -1,17 +1,21 @@
 #!/usr/bin/python
 from __future__ import division
 import time, sys, signal
+import argparse
 
 import numpy as np
 
 from sense_hat import SenseHat
 
+parser = argparse.ArgumentParser(description='Randomly Flash the LEDs.')
+parser.add_argument('refresh_period', metavar='tau', type=float,
+                    help='LED Refresh Period [ms]')
+args = parser.parse_args()
+
+tau = args.refresh_period
+
 sense = SenseHat()
 
-# initial startup color
-r = 111
-g = 55
-b = 22
 
 # do a sleep in units of milli-seconds
 def msleep(sleep_time_ms):
@@ -26,17 +30,29 @@ def sigint_handler(signum, frame):
 
 signal.signal(signal.SIGINT, sigint_handler)
         
+# the function that determines the color matrix
+def next_color(pixels):
 
-def next_colour(r,g,b):
+        #length,width = pixels.shape
+        #pix = np.random.randint(-33, 33, size=(length, width))
+        pix = np.random.standard_normal(pixels.shape)
+        pix = np.floor(10*pix)
+        pix = pixels + pix.astype(int)
+        pix = np.clip(pix, 0, 255)
 
-    r,g,b = np.random.random_integers(0, 255, size=(3,1))
-    
-    return r,g,b
+        return pix
+
+# initial startup color
+pixels = np.random.random_integers(0, 255, size=(64, 3))
+sense.set_pixels(pixels)
 
 # this is the main loop
 mmm = 0
-while mmm < 1e3:
-        sense.clear([r, g, b])
-        msleep(111)
-        r,g,b = next_colour(r,g,b)
+while mmm < 1e6: #set up a counter so it doesn't go on forever
+
+        pixels = next_color(pixels)
+        sense.set_pixels(pixels)
+        msleep(tau)
         mmm += 1
+
+sense.clear()
